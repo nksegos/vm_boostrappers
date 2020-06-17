@@ -59,17 +59,25 @@ else
 	fi
 fi
 
-# Install sudo
-export DEBIAN_FRONTEND=noninteractive
-apt update -q > /dev/null 2>&1
-apt install -yq sudo > /dev/null 2>&1
-apt install -yq --only-upgrade openssh-server openssh-client openssh-sftp-server > /dev/null 2>&1
 
-
-# Create user and grant sudo
+#  Create user
 useradd -m -s /bin/bash $USR
 echo "${USR}:$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32; echo '')" | chpasswd
-usermod -aG sudo $USR
+
+# Install and grant sudo and upgrade ssh
+if [[ $(cat /etc/[A-Za-z]*[_-][rv]e[lr]* | grep -w NAME | awk -F= '{print $2}') == "Fedora" ]]; then
+#	yum check-update > /dev/null 2>&1
+	dnf update openssh openssh-server openssh-clients -y #> /dev/null 2>&1
+	dnf install sudo -y #> /dev/null 2>&1
+	usermod -aG wheel $USR	
+else
+	export DEBIAN_FRONTEND=noninteractive
+	apt update -q > /dev/null 2>&1
+	apt install -yq sudo > /dev/null 2>&1
+	apt install -yq --only-upgrade openssh-server openssh-client openssh-sftp-server > /dev/null 2>&1
+	usermod -aG sudo $USR
+fi
+
 echo "$USR   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Create user's .ssh dir and set perms
